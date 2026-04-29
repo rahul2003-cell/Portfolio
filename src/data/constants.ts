@@ -1,4 +1,3 @@
-// ============ FIRST: Define SkillNames Enum ============
 export enum SkillNames {
   // Core Java
   JAVA = "java",
@@ -12,7 +11,7 @@ export enum SkillNames {
   
   // Java 8+ Features
   JAVA8 = "java8",
-  LAMBDA = "lambda",
+  LAMBDA = "lambda",        // ← Java Lambda (keep this)
   STREAMS = "streams",
   
   // Spring Framework
@@ -63,7 +62,7 @@ export enum SkillNames {
   EC2 = "ec2",
   S3 = "s3",
   RDS = "rds",
-  LAMBDA = "lambda",
+  AWS_LAMBDA = "aws_lambda",  // ← Change this from LAMBDA to AWS_LAMBDA
   VPC = "vpc",
   ELB = "elb",
   AUTO_SCALING = "autoscaling",
@@ -179,14 +178,14 @@ export const SKILLS: Record<SkillNames, Skill> = {
     color: "#f0db4f",
     icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
   },
-  [SkillNames.LAMBDA]: {
-    id: 10,
-    name: "lambda",
-    label: "Lambda",
-    shortDescription: "Functional programming in Java ✨",
-    color: "#ff9900",
-    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
-  },
+  [SkillNames.AWS_LAMBDA]: {
+  id: 49,
+  name: "aws_lambda",
+  label: "AWS Lambda",
+  shortDescription: "Serverless computing ⚡",
+  color: "#ff9900",
+  icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original.svg",
+},
   [SkillNames.STREAMS]: {
     id: 11,
     name: "streams",
