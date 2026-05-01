@@ -2,47 +2,55 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 
-type Metadata = {
+const BLOGS_DIRECTORY = path.join(process.cwd(), "src/content/blogs");
+
+export type BlogMetadata = {
   title: string;
   publishedAt: string;
   summary: string;
-  image?: string;
-  author?: string;
-  tags?: string[];
+  author: string;
+  tags: string[];
 };
 
-function getMDXFiles(dir: string) {
-  return fs.readdirSync(dir).filter((file) => path.extname(file) === ".mdx");
+export type BlogPost = {
+  slug: string;
+  metadata: BlogMetadata;
+  content: string;
+};
+
+export function getBlogPosts(): BlogPost[] {
+  const files = fs.readdirSync(BLOGS_DIRECTORY);
+  
+  const posts = files
+    .filter((file) => file.endsWith(".mdx"))
+    .map((file) => {
+      const slug = file.replace(/\.mdx$/, "");
+      const fullPath = path.join(BLOGS_DIRECTORY, file);
+      const fileContents = fs.readFileSync(fullPath, "utf8");
+      const { data, content } = matter(fileContents);
+      
+      return {
+        slug,
+        metadata: data as BlogMetadata,
+        content,
+      };
+    });
+  
+  return posts;
 }
 
-function readMDXFile(filePath: string) {
-  const rawContent = fs.readFileSync(filePath, "utf-8");
-  return matter(rawContent);
-}
-
-function getMDXData(dir: string) {
-  const mdxFiles = getMDXFiles(dir);
-  return mdxFiles.map((file) => {
-    const { data, content } = readMDXFile(path.join(dir, file));
-    const slug = path.basename(file, path.extname(file));
-
+export function getBlogPost(slug: string): BlogPost | null {
+  try {
+    const fullPath = path.join(BLOGS_DIRECTORY, `${slug}.mdx`);
+    const fileContents = fs.readFileSync(fullPath, "utf8");
+    const { data, content } = matter(fileContents);
+    
     return {
-      metadata: data as Metadata,
       slug,
+      metadata: data as BlogMetadata,
       content,
     };
-  });
-}
-
-export function getBlogPosts() {
-  return getMDXData(path.join(process.cwd(), "src/content/blogs"));
-}
-
-export function getBlogPost(slug: string) {
-  const filePath = path.join(process.cwd(), "src/content/blogs", `${slug}.mdx`);
-  const { data, content } = readMDXFile(filePath);
-  return {
-    metadata: data as Metadata,
-    content,
-  };
+  } catch (error) {
+    return null;
+  }
 }

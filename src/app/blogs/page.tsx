@@ -1,71 +1,143 @@
-import React from "react";
-import Link from "next/link";
-import { getBlogPosts } from "@/lib/mdx";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { compileMDX } from "next-mdx-remote/rsc";
+import { getBlogPost, getBlogPosts } from "@/lib/mdx";
+import { notFound } from "next/navigation";
+import { CalendarDays, User, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, User } from "lucide-react";
-import RevealAnimation from "@/components/reveal-animations";
+import React from "react";
 
-export const metadata = {
-  title: "Blog | Portfolio",
-  description: "Thoughts, tutorials, and updates from the space.",
+// Custom components for MDX
+const components = {
+  h1: ({ children }: { children: React.ReactNode }) => (
+    <h1 className="text-3xl md:text-4xl font-bold mt-8 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }: { children: React.ReactNode }) => (
+    <h2 className="text-2xl md:text-3xl font-semibold mt-8 mb-3 text-purple-400">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }: { children: React.ReactNode }) => (
+    <h3 className="text-xl md:text-2xl font-semibold mt-6 mb-2">
+      {children}
+    </h3>
+  ),
+  p: ({ children }: { children: React.ReactNode }) => (
+    <p className="text-zinc-300 leading-relaxed mb-4">
+      {children}
+    </p>
+  ),
+  a: ({ href, children }: { href?: string; children: React.ReactNode }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">
+      {children}
+    </a>
+  ),
+  code: ({ children }: { children: React.ReactNode }) => (
+    <code className="bg-zinc-800/50 rounded px-1.5 py-0.5 text-sm font-mono text-purple-300">
+      {children}
+    </code>
+  ),
+  pre: ({ children }: { children: React.ReactNode }) => (
+    <pre className="bg-zinc-900 rounded-lg p-4 overflow-x-auto mb-4">
+      {children}
+    </pre>
+  ),
+  ul: ({ children }: { children: React.ReactNode }) => (
+    <ul className="list-disc list-inside mb-4 space-y-1 text-zinc-300">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }: { children: React.ReactNode }) => (
+    <ol className="list-decimal list-inside mb-4 space-y-1 text-zinc-300">
+      {children}
+    </ol>
+  ),
+  li: ({ children }: { children: React.ReactNode }) => (
+    <li className="text-zinc-300">{children}</li>
+  ),
+  blockquote: ({ children }: { children: React.ReactNode }) => (
+    <blockquote className="border-l-4 border-purple-500 pl-4 italic my-4 text-zinc-400">
+      {children}
+    </blockquote>
+  ),
+  hr: () => <hr className="my-8 border-zinc-700" />,
 };
 
-export default function BlogPage() {
-  const posts = getBlogPosts().sort((a, b) => {
-    if (new Date(a.metadata.publishedAt) > new Date(b.metadata.publishedAt)) {
-      return -1;
-    }
-    return 1;
+export async function generateStaticParams() {
+  const posts = getBlogPosts();
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const post = getBlogPost(params.slug);
+  if (!post) {
+    return {
+      title: "Post Not Found",
+      description: "The requested blog post could not be found.",
+    };
+  }
+  return {
+    title: post.metadata.title,
+    description: post.metadata.summary,
+  };
+}
+
+export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+  const post = getBlogPost(params.slug);
+  
+  if (!post) {
+    notFound();
+  }
+
+  // For next-mdx-remote v6.0.0 - JavaScript expressions are disabled by default (blockJS: true) for security
+  const { content } = await compileMDX({
+    source: post.content,
+    options: {
+      parseFrontmatter: false, // Already parsed by getBlogPost
+      // blockJS: true (default) - JavaScript expressions are disabled
+      // If you need JavaScript expressions in your MDX (like interactive components), 
+      // set blockJS: false (but be cautious with untrusted content)
+    },
+    components,
   });
 
   return (
-    <div className="container mx-auto px-4 py-24 min-h-screen font-sans">
-      <RevealAnimation>
-        <h1 className="text-4xl md:text-6xl font-bold text-center mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-          Space Log
+    <article className="container mx-auto px-4 py-24 max-w-4xl">
+      {/* Header */}
+      <header className="mb-12">
+        <div className="flex flex-wrap gap-2 mb-4">
+          {post.metadata.tags?.map((tag: string) => (
+            <Badge key={tag} variant="outline" className="border-purple-500/30 text-purple-400">
+              <Tag className="w-3 h-3 mr-1" />
+              {tag}
+            </Badge>
+          ))}
+        </div>
+        
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+          {post.metadata.title}
         </h1>
-        <p className="text-zinc-400 text-center mb-12 max-w-2xl mx-auto">
-          Documenting my journey through the cosmos of code.
-        </p>
-      </RevealAnimation>
+        
+        <div className="flex flex-wrap items-center gap-4 text-zinc-400 text-sm mb-8">
+          <div className="flex items-center gap-1">
+            <User className="w-4 h-4" />
+            {post.metadata.author}
+          </div>
+          <div className="flex items-center gap-1">
+            <CalendarDays className="w-4 h-4" />
+            {post.metadata.publishedAt}
+          </div>
+        </div>
+        
+        <div className="border-b border-zinc-800 my-6" />
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {posts.map((post, index) => (
-          <RevealAnimation key={post.slug} delay={index * 0.1}>
-            <Link href={`/blogs/${post.slug}`}>
-              <Card className="h-full bg-black/40 border-zinc-800 backdrop-blur-sm hover:border-purple-500/50 transition-colors group overflow-hidden">
-                <CardHeader>
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="outline" className="border-purple-500/30 text-purple-400">
-                      {post.metadata.tags?.[0] || "Blog"}
-                    </Badge>
-                    <span className="text-xs text-zinc-500 flex items-center gap-1">
-                      <CalendarDays className="w-3 h-3" />
-                      {post.metadata.publishedAt}
-                    </span>
-                  </div>
-                  <CardTitle className="text-xl group-hover:text-purple-400 transition-colors">
-                    {post.metadata.title}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {post.metadata.summary}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Optional: Add image here if available */}
-                </CardContent>
-                <CardFooter className="mt-auto">
-                  <div className="flex items-center gap-2 text-sm text-zinc-500">
-                    <User className="w-4 h-4" />
-                    {post.metadata.author}
-                  </div>
-                </CardFooter>
-              </Card>
-            </Link>
-          </RevealAnimation>
-        ))}
+      {/* MDX Content */}
+      <div className="prose prose-invert prose-purple max-w-none">
+        {content}
       </div>
-    </div>
+    </article>
   );
 }
