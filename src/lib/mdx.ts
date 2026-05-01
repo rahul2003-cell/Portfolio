@@ -19,6 +19,10 @@ export type BlogPost = {
 };
 
 export function getBlogPosts(): BlogPost[] {
+  if (!fs.existsSync(BLOGS_DIRECTORY)) {
+    return [];
+  }
+  
   const files = fs.readdirSync(BLOGS_DIRECTORY);
   
   const posts = files
@@ -51,6 +55,7 @@ export function getBlogPost(slug: string): BlogPost | null {
       content,
     };
   } catch (error) {
+    console.error(`Error loading blog post ${slug}:`, error);
     return null;
   }
 }
